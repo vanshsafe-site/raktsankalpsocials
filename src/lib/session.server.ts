@@ -29,8 +29,41 @@ export function readCookie(request: Request) {
   return cookies.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${COOKIE_NAME}=`))?.slice(COOKIE_NAME.length + 1);
 }
 
-export function requireAdmin(request: Request) {
-  if (!isValidSessionValue(readCookie(request))) throw new Response("Unauthorized", { status: 401 });
+// Updated: accept either the existing cookie-based session OR a Supabase JWT in
+// Authorization: Bearer <token>. The JWT is verified server-side using the
+// service-role client and must match ADMIN_EMAIL or ADMIN_UID (set in env).
+export async function requireAdmin(request: Request) {
+  // 1) existing cookie-based session
+  if (isValidSessionValue(readCookie(request))) return;
+
+  // 2) Authorization header with Supabase access token
+  const authHeader = request.headers.get("authorization") ?? "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
+  if (token) {
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data, error } = await supabaseAdmin.auth.getUser(token);
+      if (error || !data?.user) {
+        console.error("[requireAdmin] supabase getUser failed:", error ?? "no user");
+        throw new Response("Unauthorized", { status: 401 });
+      }
+
+      const adminEmail = process.env["ADMIN_EMAIL"] ?? "";
+      const adminUid = process.env["ADMIN_UID"] ?? "";
+
+      if (adminEmail && data.user.email === adminEmail) return;
+      if (adminUid && data.user.id === adminUid) return;
+
+      console.error("[requireAdmin] user is not admin:", { email: data.user.email, id: data.user.id });
+      throw new Response("Unauthorized", { status: 401 });
+    } catch (err) {
+      console.error("[requireAdmin] token verification error:", err);
+      throw new Response("Unauthorized", { status: 401 });
+    }
+  }
+
+  // 3) no valid cookie or token
+  throw new Response("Unauthorized", { status: 401 });
 }
 
 export function sessionCookie(value: string) {
