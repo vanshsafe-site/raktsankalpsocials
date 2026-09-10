@@ -5,13 +5,13 @@ import { ArrowLeft, LogIn, UserPlus } from "lucide-react";
 import { BrandMark } from "@/components/tracker-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { loginAdmin } from "@/lib/api";
+import { loginAdmin, signupAdmin } from "@/lib/api";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [adminId, setAdminId] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await loginAdmin(adminId, password);
+      await loginAdmin(email, password);
       navigate({ to: "/admin" });
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : "Login failed.");
@@ -54,12 +54,13 @@ function LoginPage() {
         <p>Sign in to update the daily social activity records.</p>
         <form className="login-form" onSubmit={handleSubmit}>
           <label>
-            Administrator ID
+            Email Address
             <Input
               required
-              autoComplete="username"
-              value={adminId}
-              onChange={(event) => setAdminId(event.target.value)}
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
             />
           </label>
           <label>
@@ -229,7 +230,6 @@ function ForgotPasswordView({ onBack }: { onBack: () => void }) {
 }
 
 function SignupView({ onBack }: { onBack: () => void }) {
-  const [adminId, setAdminId] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -243,11 +243,6 @@ function SignupView({ onBack }: { onBack: () => void }) {
     setError(null);
 
     // Validation
-    if (!adminId.trim()) {
-      setError("Administrator ID is required.");
-      return;
-    }
-
     if (!email.trim()) {
       setError("Email address is required.");
       return;
@@ -265,27 +260,15 @@ function SignupView({ onBack }: { onBack: () => void }) {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ adminId, email, password }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        console.error("Signup error", json);
-        setStatus("error");
-        setError(json.error || "Unable to create account. Try again later.");
-      } else {
-        setStatus("success");
-        setAdminId("");
-        setEmail("");
-        setPassword("");
-        setConfirmPassword("");
-      }
+      await signupAdmin(email, password);
+      setStatus("success");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
     } catch (err) {
       console.error(err);
       setStatus("error");
-      setError("An unexpected error occurred. Try again later.");
+      setError(err instanceof Error ? err.message : "An unexpected error occurred. Try again later.");
     } finally {
       setLoading(false);
     }
@@ -343,16 +326,6 @@ function SignupView({ onBack }: { onBack: () => void }) {
           </div>
         ) : (
           <form className="login-form" onSubmit={handleSubmit}>
-            <label>
-              Administrator ID
-              <Input
-                required
-                autoComplete="username"
-                value={adminId}
-                onChange={(e) => setAdminId(e.target.value)}
-                placeholder="Create a unique ID"
-              />
-            </label>
             <label>
               Email Address
               <Input
