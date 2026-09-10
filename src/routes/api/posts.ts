@@ -43,12 +43,18 @@ export const Route = createFileRoute("/api/posts")({
         const existing = await supabaseAdmin.from("social_posts").select("screenshot_path, screenshot_url").eq("date", date).eq("platform", platform).maybeSingle();
         let screenshotPath = existing.data?.screenshot_path ?? null;
         let screenshotUrl = existing.data?.screenshot_url ?? null;
-        if (screenshot instanceof File && screenshot.size > 0) {
-          const extension = (screenshot.name.split(".").pop() ?? "png").toLowerCase();
+
+        // Accept both File and Blob-like uploads from formData in different runtimes
+        const isFileLike = screenshot && typeof (screenshot as any).arrayBuffer === "function" && typeof (screenshot as any).size === "number";
+        if (isFileLike && (screenshot as any).size > 0) {
+          const name = (screenshot as any).name ?? `${platform}-screenshot.png`;
+          const extension = (name.split(".").pop() ?? "png").toLowerCase();
           if (!["jpg", "jpeg", "png", "webp"].includes(extension)) return Response.json({ error: "Use JPG, PNG, or WEBP images." }, { status: 400 });
           screenshotPath = `social-proof/${date.replaceAll("-", "/")}/${platform}-${crypto.randomUUID()}.${extension}`;
-          const bytes = await screenshot.arrayBuffer();
-          const uploaded = await supabaseAdmin.storage.from("social-proof").upload(screenshotPath, bytes, { contentType: screenshot.type || "image/png", upsert: false });
+          const bytes = await (screenshot as any).arrayBuffer();
+          // Upload accepts a Uint8Array/ArrayBuffer/Blob depending on environment
+          const uploadBody = typeof Buffer !== "undefined" ? Buffer.from(bytes) : new Uint8Array(bytes as ArrayBuffer);
+          const uploaded = await supabaseAdmin.storage.from("social-proof").upload(screenshotPath, uploadBody, { contentType: (screenshot as any).type || "image/png", upsert: false });
           if (uploaded.error) return Response.json({ error: "The screenshot could not be uploaded." }, { status: 500 });
           screenshotUrl = screenshotPath;
           if (existing.data?.screenshot_path) await supabaseAdmin.storage.from("social-proof").remove([existing.data.screenshot_path]);
