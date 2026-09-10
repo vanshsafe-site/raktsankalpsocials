@@ -39,7 +39,6 @@ export const Route = createFileRoute("/api/posts")({
         const parsedPlatform = platformSchema.safeParse(platform);
         if (!dateSchema.safeParse(date).success || !parsedPlatform.success) return Response.json({ error: "Please provide a valid date and platform." }, { status: 400 });
         const screenshot = form.get("screenshot");
-        if (screenshot instanceof File && screenshot.size > 5 * 1024 * 1024) return Response.json({ error: "Images must be 5 MB or smaller." }, { status: 400 });
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const existing = await supabaseAdmin.from("social_posts").select("screenshot_path, screenshot_url").eq("date", date).eq("platform", platform).maybeSingle();
         let screenshotPath = existing.data?.screenshot_path ?? null;
@@ -58,7 +57,7 @@ export const Route = createFileRoute("/api/posts")({
           screenshotPath = null;
           screenshotUrl = null;
         }
-        const payload = { date, platform, posted: form.get("posted") === "true", post_url: String(form.get("postUrl") ?? "").trim() || null, notes: String(form.get("notes") ?? "").trim() || null, screenshot_path: screenshotPath, screenshot_url: screenshotUrl };
+        const payload = { date, platform, posted: form.get("posted") === "true", post_url: String(form.get("postUrl") ?? "").trim() || null, notes: String(form.get("notes") ?? "").trim() || null, [...]
         const { data, error } = await supabaseAdmin.from("social_posts").upsert(payload, { onConflict: "date,platform" }).select("*").single();
         if (error) return Response.json({ error: "The post could not be saved." }, { status: 500 });
         return Response.json({ post: data });
