@@ -17,9 +17,25 @@ export async function fetchSession() {
   return response.ok && (await response.json()).authenticated === true;
 }
 
-export async function loginAdmin(adminId: string, password: string) {
-  const response = await fetch("/api/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ adminId, password }) });
-  if (!response.ok) throw new Error("Login failed. Check your administrator ID and password.");
+export async function loginAdmin(email: string, password: string) {
+  const response = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) throw new Error("Login failed. Check your email and password.");
+}
+
+export async function signupAdmin(email: string, password: string) {
+  const response = await fetch("/api/auth/signup", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const json = await response.json();
+    throw new Error(json.error || "Unable to create account. Try again later.");
+  }
 }
 
 export async function logoutAdmin() {
