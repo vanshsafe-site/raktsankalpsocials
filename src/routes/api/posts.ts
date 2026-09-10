@@ -50,7 +50,8 @@ export const Route = createFileRoute("/api/posts")({
           const name = (screenshot as any).name ?? `${platform}-screenshot.png`;
           const extension = (name.split(".").pop() ?? "png").toLowerCase();
           if (!["jpg", "jpeg", "png", "webp"].includes(extension)) return Response.json({ error: "Use JPG, PNG, or WEBP images." }, { status: 400 });
-          screenshotPath = `social-proof/${date.replaceAll("-", "/")}/${platform}-${crypto.randomUUID()}.${extension}`;
+          // Store the path relative to the bucket (do NOT prefix with the bucket name)
+          screenshotPath = `${date.replaceAll("-", "/")}/${platform}-${crypto.randomUUID()}.${extension}`;
           const bytes = await (screenshot as any).arrayBuffer();
           // Upload accepts a Uint8Array/ArrayBuffer/Blob depending on environment
           const uploadBody = typeof Buffer !== "undefined" ? Buffer.from(bytes) : new Uint8Array(bytes as ArrayBuffer);
