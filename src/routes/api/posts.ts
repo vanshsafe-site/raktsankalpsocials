@@ -57,7 +57,7 @@ export const Route = createFileRoute("/api/posts")({
           screenshotPath = null;
           screenshotUrl = null;
         }
-        const payload = { date, platform, posted: form.get("posted") === "true", post_url: String(form.get("postUrl") ?? "").trim() || null, notes: String(form.get("notes") ?? "").trim() || null, [...]
+        const payload = { date, platform, posted: form.get("posted") === "true", post_url: String(form.get("postUrl") ?? "").trim() || null, notes: String(form.get("notes") ?? "").trim() || null, screenshot_path: screenshotPath, screenshot_url: screenshotUrl };
         const { data, error } = await supabaseAdmin.from("social_posts").upsert(payload, { onConflict: "date,platform" }).select("*").single();
         if (error) return Response.json({ error: "The post could not be saved." }, { status: 500 });
         return Response.json({ post: data });
