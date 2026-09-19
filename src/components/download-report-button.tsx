@@ -24,11 +24,18 @@ export function DownloadReportButton() {
     let cleanupTimer: number | null = null;
 
     const cleanup = () => {
-      if (cleanupTimer !== null) window.clearTimeout(cleanupTimer);
+      if (cleanupTimer !== null) {
+        window.clearTimeout(cleanupTimer);
+        cleanupTimer = null;
+      }
+
       link?.remove();
-      if (url) URL.revokeObjectURL(url);
       link = null;
-      url = null;
+
+      if (url) {
+        URL.revokeObjectURL(url);
+        url = null;
+      }
     };
 
     try {
