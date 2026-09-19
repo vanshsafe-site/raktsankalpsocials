@@ -47,6 +47,10 @@ export async function fetchMonthPosts(from: string, to: string) {
   return parseResponse<{ posts: SocialPost[] }>(response, "We couldn't load posting activity.");
 }
 
+export async function fetchDayPosts(date: string) {
+  return fetchMonthPosts(date, date);
+}
+
 export async function fetchReportPosts() {
   // The posts endpoint requires a range. This broad range includes the complete tracker history.
   const response = await fetch("/api/posts?from=2000-01-01&to=2100-12-31");
